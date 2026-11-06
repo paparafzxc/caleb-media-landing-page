@@ -36,7 +36,7 @@
       <a href="#features">Features</a><a href="#workflow">How it works</a><a href="#offline">Offline first</a>
       <a href="https://github.com/paparafzxc/church-presenter" target="_blank" rel="noreferrer">GitHub ↗</a>
     </nav>
-    <a class="nav-cta" href="https://github.com/paparafzxc/church-presenter/releases/tag/Caleb-Media-Presenter" target="_blank" rel="noreferrer" data-download-link>Download for Windows <span>↓</span></a>
+    <a class="nav-cta" href="https://github.com/paparafzxc/church-presenter/releases/download/Caleb-Media-Presenter/Caleb-Media-Setup-0.3.0-x64.exe" target="_blank" rel="noreferrer" data-download-link>Download for Windows <span>↓</span></a>
     <button class="menu-btn" id="menuBtn" aria-label="Open navigation" aria-expanded="false">☰</button>
   </header>
 
@@ -48,7 +48,7 @@
           <h1>Worship, without the workflow getting <em>in the way.</em></h1>
           <p class="hero-copy">A free project. A free tool. Built for churches. Prepare your songs, build your setlist, and present every lyric with confidence — without subscriptions or cloud dependency.</p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="https://github.com/paparafzxc/church-presenter/releases/tag/Caleb-Media-Presenter" target="_blank" rel="noreferrer" data-download-link>Download for Windows <span>↓</span></a>
+            <a class="btn btn-primary" href="https://github.com/paparafzxc/church-presenter/releases/download/Caleb-Media-Presenter/Caleb-Media-Setup-0.3.0-x64.exe" target="_blank" rel="noreferrer" data-download-link>Download for Windows <span>↓</span></a>
             <a class="btn btn-secondary" href="#features">Discover the features <span>↓</span></a>
           </div>
           <div class="hero-note"><span class="dot"></span> Free project · Free tool · Built for churches · Windows 10 &amp; 11</div>
@@ -159,7 +159,7 @@
         <h2>Make room for what matters.</h2>
         <p>Caleb Media is a free project and free tool, built for churches. Use it, share it, and help make worship presentation simpler for local congregations.</p>
         <div class="cta-actions">
-          <a class="btn btn-primary" href="https://github.com/paparafzxc/church-presenter/releases/tag/Caleb-Media-Presenter" target="_blank" rel="noreferrer" data-download-link>Download for Windows ↓</a>
+          <a class="btn btn-primary" href="https://github.com/paparafzxc/church-presenter/releases/download/Caleb-Media-Presenter/Caleb-Media-Setup-0.3.0-x64.exe" target="_blank" rel="noreferrer" data-download-link>Download for Windows ↓</a>
           <a class="btn btn-secondary" href="https://github.com/paparafzxc/church-presenter" target="_blank" rel="noreferrer">View source on GitHub ↗</a>
           <a class="btn btn-secondary" href="https://github.com/paparafzxc/church-presenter/issues" target="_blank" rel="noreferrer">Share feedback ↗</a>
         </div>
@@ -174,48 +174,49 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Public event counter: records clicks on the Windows release links.
-    // The release link itself is never blocked if the counter service is unavailable.
-    const downloadCounter = {
-      namespace: 'caleb-media-landing-page',
-      action: 'download_click',
-      key: 'windows-release'
-    };
-    const counterBase = 'https://counterapi.com/api/'
-      + encodeURIComponent(downloadCounter.namespace) + '/'
-      + encodeURIComponent(downloadCounter.action) + '/'
-      + encodeURIComponent(downloadCounter.key);
+    // Public click counter. CounterAPI's "vote" behavior increments only on
+    // an explicit download-button click; readOnly requests only retrieve the total.
+    const counterNamespace = 'caleb-media-landing-page';
+    const counterAction = 'download_click';
+    const counterKey = 'windows-installer';
+    const counterUrl = 'https://counterapi.com/api/'
+      + encodeURIComponent(counterNamespace) + '/'
+      + encodeURIComponent(counterAction) + '/'
+      + encodeURIComponent(counterKey);
 
     const countNodes = document.querySelectorAll('.download-count');
     const renderDownloadCount = value => {
-      if (!Number.isFinite(Number(value))) return;
+      const count = Number(value);
+      if (!Number.isFinite(count)) throw new Error('Invalid counter response');
       countNodes.forEach(node => {
-        node.textContent = new Intl.NumberFormat().format(Number(value));
+        node.textContent = new Intl.NumberFormat().format(count);
       });
     };
 
-    // Read the current total without incrementing it.
-    fetch(counterBase + '?readOnly=true', { cache: 'no-store' })
+    // Load the current total without changing it.
+    fetch(counterUrl + '?readOnly=true', { cache: 'no-store' })
       .then(response => {
-        if (!response.ok) throw new Error('Counter read failed');
+        if (!response.ok) throw new Error('Counter read failed: ' + response.status);
         return response.json();
       })
       .then(data => renderDownloadCount(data.value))
-      .catch(() => {
-        countNodes.forEach(node => { node.textContent = '—'; });
+      .catch(error => {
+        console.warn('Caleb Media download counter is unavailable:', error);
+        countNodes.forEach(node => { node.textContent = 'Unavailable'; });
       });
 
-    // Count every intentional click, while allowing the GitHub release page to open normally.
+    // Count explicit clicks on every direct installer link. keepalive lets the
+    // request finish even as the browser navigates to GitHub's download URL.
     document.addEventListener('click', event => {
       const link = event.target.closest('a[data-download-link]');
       if (!link) return;
-      fetch(counterBase, {
+      fetch(counterUrl + '?behavior=vote', {
         method: 'GET',
         mode: 'cors',
         cache: 'no-store',
         keepalive: true
-      }).catch(() => {
-        // Analytics failure must never interfere with downloading.
+      }).catch(error => {
+        console.warn('Caleb Media download click was not recorded:', error);
       });
     });
     const menuBtn = document.getElementById('menuBtn');
